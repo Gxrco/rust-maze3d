@@ -1,54 +1,73 @@
-use crate::color::Color;
-use crate::bmp;
+use rusttype::{Font, Scale, point, PositionedGlyph, VMetrics};
 
 pub struct Framebuffer {
-    pub width: u32,
-    pub height: u32,
-    pub buffer: Vec<Color>,
-    pub background_color: Color,
-    pub current_color: Color,
+    pub width: usize,
+    pub height: usize,
+    pub buffer: Vec<u32>,
+    background_color: u32,
+    current_color: u32,
 }
 
 impl Framebuffer {
-    pub fn new(width: u32, height: u32) -> Self {
-        let background_color = Color::new(0, 0, 0); 
-        let current_color = Color::new(0, 0, 0);    
-        let buffer_size = (width * height) as usize;
+    pub fn new(width: usize, height: usize) -> Self {
         Self {
             width,
             height,
-            buffer: vec![background_color; buffer_size],
-            background_color,
-            current_color,
+            buffer: vec![0; width * height],
+            background_color: 0x000000,
+            current_color: 0xFFFFFF,
         }
-    }
-
-    pub fn set_background_color(&mut self, hex: u32) {
-        self.background_color = Color::from_hex(hex);
-    }
-
-    pub fn set_current_color(&mut self, hex: u32) {
-        self.current_color = Color::from_hex(hex);
     }
 
     pub fn clear(&mut self) {
         self.buffer.fill(self.background_color);
     }
 
-    pub fn point(&mut self, x: u32, y: u32) {
+    pub fn point(&mut self, x: usize, y: usize) {
         if x < self.width && y < self.height {
-            let index = (y * self.width + x) as usize;
-            self.buffer[index] = self.current_color;
+            self.buffer[y * self.width + x] = self.current_color;
         }
     }
 
-    pub fn render(&self, file_path: &str) -> std::io::Result<()> {
-        bmp::write_bmp_file(file_path, &self.buffer, self.width, self.height)
+    pub fn set_background_color(&mut self, color: u32) {
+        self.background_color = color;
     }
 
-    pub fn get_u32_buffer(&self) -> Vec<u32> {
-        self.buffer.iter().map(|color| {
-            ((color.r as u32) << 16) | ((color.g as u32) << 8) | (color.b as u32)
-        }).collect()
+    pub fn set_current_color(&mut self, color: u32) {
+        self.current_color = color;
+    }
+
+    pub fn drawtext(&mut self, text: &str, x: usize, y: usize, scale: Scale, color: u32) {
+        let font = Self::load_font();
+        let v_metrics = font.v_metrics(scale);
+        let offset = point(x as f32, y as f32 + v_metrics.ascent);
+
+        let glyphs = font.layout(text, scale, offset);
+
+        self.draw_glyphs(glyphs, color);
+    }
+
+    fn load_font() -> Font<'static> {
+        static FONT_DATA: &'static [u8] = include_bytes!("../assets/Nasa.ttf");
+        Font::try_from_bytes(FONT_DATA).expect("Error loading font")
+    }
+
+    fn draw_glyphs<'a>(&mut self, glyphs: impl Iterator<Item = PositionedGlyph<'a>>, color: u32) {
+        for glyph in glyphs {
+            if let Some(bounding_box) = glyph.pixel_bounding_box() {
+                glyph.draw(|gx, gy, gv| {
+                    if gv > 0.5 {
+                        let gx = gx as i32 + bounding_box.min.x;
+                        let gy = gy as i32 + bounding_box.min.y;
+
+                        if let (Ok(gx), Ok(gy)) = (usize::try_from(gx), usize::try_from(gy)) {
+                            if gx < self.width && gy < self.height {
+                                self.buffer[gy * self.width + gx] = color;
+                            }
+                        }
+                    }
+                });
+            }
+        }
     }
 }
