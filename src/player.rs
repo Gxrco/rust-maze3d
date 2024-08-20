@@ -44,7 +44,6 @@ pub fn process_events(
     let mut moved = false;
     let mut new_pos = player.pos;
 
-    // Obtener la posición del mouse
     if let Some((mouse_x, _)) = window.get_mouse_pos(minifb::MouseMode::Clamp) {
         let delta_x = mouse_x as f32 - player.previous_mouse_pos.x;
         if delta_x.abs() > 0.1 {
@@ -53,7 +52,6 @@ pub fn process_events(
         player.previous_mouse_pos.x = mouse_x as f32;
     }
 
-    // Procesar eventos de teclado
     if window.is_key_down(Key::A) {
         player.a -= ROTATION_SPEED;
     }
@@ -71,7 +69,6 @@ pub fn process_events(
         moved = true;
     }
 
-    // Verificar si el jugador puede moverse a la nueva posición
     if moved && player.can_move_to(new_pos, maze, block_size) {
         if player.pos != new_pos {
             player.pos = new_pos;
