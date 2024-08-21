@@ -38,7 +38,7 @@ pub fn process_events(
     block_size: usize,
     audio_player: &AudioPlayer,
 ) {
-    const MOVE_SPEED: f32 = 2.0;
+    const MOVE_SPEED: f32 = 4.0;
     const ROTATION_SPEED: f32 = 3.14 / 80.0;
 
     let mut moved = false;
@@ -72,7 +72,9 @@ pub fn process_events(
     if moved && player.can_move_to(new_pos, maze, block_size) {
         if player.pos != new_pos {
             player.pos = new_pos;
-            audio_player.play();
+            if !audio_player.is_playing() {
+                audio_player.play();
+            }
         }
     } else {
         audio_player.pause();
