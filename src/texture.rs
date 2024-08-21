@@ -1,6 +1,4 @@
-extern crate image;
-
-use image::{DynamicImage, GenericImageView, ImageReader};
+use image::{DynamicImage, GenericImageView, ImageReader, Pixel, imageops::resize};
 
 pub struct Texture {
     pub width: u32,
@@ -10,11 +8,17 @@ pub struct Texture {
 
 impl Texture {
     pub fn new(file_path: &str) -> Texture {
-        let img = ImageReader::open(file_path).expect("Failed to open image file").decode().expect("Failed to decode image");
-        let (width, height) = img.dimensions();
-        
-        let color_array = Self::load_array(&img, width, height);
-        
+        let img = ImageReader::open(file_path)
+            .expect("Failed to open image file")
+            .decode()
+            .expect("Failed to decode image");
+
+        let resized_img = resize(&img, 128, 128, image::imageops::FilterType::Nearest);
+        let resized_img = DynamicImage::ImageRgba8(resized_img);
+        let (width, height) = resized_img.dimensions();
+
+        let color_array = Self::load_array(&resized_img, width, height);
+
         Texture { width, height, color_array }
     }
 
@@ -34,7 +38,7 @@ impl Texture {
         if x < self.width && y < self.height {
             self.color_array[x as usize][y as usize]
         } else {
-            0xFF0000 
+            0x000000
         }
     }
 }
