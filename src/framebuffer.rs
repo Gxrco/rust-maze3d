@@ -1,4 +1,4 @@
-use rusttype::{Font, Scale, point, PositionedGlyph, VMetrics};
+use rusttype::{Font, Scale, point, PositionedGlyph};
 
 pub struct Framebuffer {
     pub width: usize,
@@ -47,8 +47,15 @@ impl Framebuffer {
         self.draw_glyphs(glyphs, color);
     }
 
+    pub fn text_width(&self, text: &str, scale: Scale) -> f32 {
+        let font = Self::load_font();
+        font.layout(text, scale, point(0.0, 0.0))
+            .map(|g| g.pixel_bounding_box().map(|b| b.width() as f32).unwrap_or(0.0))
+            .sum()
+    }
+
     fn load_font() -> Font<'static> {
-        static FONT_DATA: &'static [u8] = include_bytes!("../assets/Nasa.ttf");
+        static FONT_DATA: &'static [u8] = include_bytes!("../assets/Sterion.ttf");
         Font::try_from_bytes(FONT_DATA).expect("Error loading font")
     }
 
