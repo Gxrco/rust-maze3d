@@ -1,4 +1,4 @@
-use rodio::{Decoder, OutputStream, Sink};
+use rodio::{Decoder, OutputStream, Sink, Source};
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
@@ -14,7 +14,7 @@ impl AudioPlayer {
         let sink = Sink::try_new(&stream_handle)?;
 
         let file = File::open(music_file)?;
-        let source = Decoder::new(BufReader::new(file))?;
+        let source = Decoder::new(BufReader::new(file))?.repeat_infinite();
         sink.append(source);
         sink.set_volume(0.5);
         sink.pause();
@@ -38,6 +38,15 @@ impl AudioPlayer {
             sink.pause();
         } else {
             eprintln!("Failed to lock the sink to pause playback.");
+        }
+    }
+
+    pub fn is_playing(&self) -> bool {
+        if let Ok(sink) = self.sink.lock() {
+            !sink.is_paused()
+        } else {
+            eprintln!("Failed to lock the sink to check if it's playing.");
+            false
         }
     }
 }
